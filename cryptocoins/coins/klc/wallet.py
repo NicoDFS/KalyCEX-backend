@@ -2,17 +2,24 @@ from django.db import transaction
 from web3signer_service import Web3SignerService
 from aws_kms_service import AwsKmsService
 from core.models.cryptocoins import UserWallet
+from django.conf import settings
+from web3 import Web3
 
 class TransactionController:
     def __init__(self, web3signer_url):
         self.web3signer_service = Web3SignerService(web3signer_url)
 
-    def create_klc_address():
-    # Initialize the AWS KMS service
-        aws_kms_service = AwsKmsService(endpoint_url='your_endpoint_url') #TODO get from env
+    def create_klc_address(self):
+        # Initialize the AWS KMS service
+        aws_kms_service = AwsKmsService(endpoint_url=settings.AWS_KMS_ENDPOINT)
 
         # Create a new key using the AWS KMS service
-        key_id = aws_kms_service.create_new_key()
+        try:
+            key_id = aws_kms_service.create_new_key()
+        except Exception as e:
+            # Log the exception and re-raise
+            print(f"Failed to create new key: {e}")
+            raise
 
         # Initialize the Web3Signer service
         web3signer_service = Web3SignerService(key_id=key_id)
@@ -51,8 +58,7 @@ class TransactionController:
         # Return the wallet
 
     def is_valid_klc_address(self, address):
-        # Implement KLC address validation logic here
-        pass
+        return Web3.is_address(address)
 
     def klc_wallet_creation_wrapper(self, user_id, is_new=False):
         wallet = self.get_or_create_klc_wallet(user_id, is_new=is_new)
@@ -73,7 +79,3 @@ class TransactionController:
         key_id = aws_kms_service.create_new_key()
         # Use the key_id to create a new KRC20 wallet
         # Return the wallet
-
-    def is_valid_krc20_address(self, address, token_name):
-        # Implement KRC20 address validation logic here
-        pass

@@ -2,7 +2,7 @@ import logging
 import time
 import hashlib
 import hmac
-
+import jwt
 
 import requests
 from lib.cache import PrefixedRedisCache
@@ -82,6 +82,18 @@ class SumSubClient:
         prepared_request.headers['X-App-Token'] = SUMSUB_APP_TOKEN
         prepared_request.headers['X-App-Access-Ts'] = str(now)
         prepared_request.headers['X-App-Access-Sig'] = signature.hexdigest()
+
+        # Generate JWT
+        payload = {
+            'exp': now + 600,  # Token valid for 10 minutes
+            'iat': now,
+            'iss': SUMSUB_APP_TOKEN
+        }
+        jwt_token = jwt.encode(payload, SUMSUB_SECRET_KEY, algorithm='HS256')
+
+        # Add JWT to headers
+        prepared_request.headers['Authorization'] = f'Bearer {jwt_token.decode()}'
+
         return prepared_request
 
     def get_applicant_data(self, applicantId):
